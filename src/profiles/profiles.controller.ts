@@ -1,40 +1,62 @@
 import {
-  Body,
   Controller,
-  Delete,
   Get,
-  HttpCode,
-  HttpStatus,
   Param,
+  Body,
   Post,
   Put,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  NotFoundException,
+  ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
-import { type Profile, ProfilesService } from './profiles.service';
+import { ProfilesService } from './profiles.service';
+import { CreateProfileDto } from './dto/create-profile.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import type { UUID } from 'crypto';
+import { ProfilesGuard } from './profiles.guard';
 
 @Controller('profiles')
 export class ProfilesController {
   constructor(private profilesService: ProfilesService) {}
   // GET /profiles
   @Get()
-  findAll(): Profile[] {
-    return this.profilesService.getProfiles();
+  findAll() {
+    return this.profilesService.findAll();
   }
 
   // GET /profiles/:id
-  @Get(':profileId')
-  getProfile(@Param('profileId') profileId: string): Profile {
-    return this.profilesService.getProfile(profileId);
+  @Get(':id')
+  findOne(@Param('id', ParseUUIDPipe) id: UUID) {
+    try {
+      return this.profilesService.findOne(id);
+    } catch (error) {
+      throw new NotFoundException(error.message);
+    }
   }
+
   // POST /profiles
   @Post()
-  addProfile(@Body() profile: Profile): Profile[] {
-    return this.profilesService.addProfile(profile);
+  create(@Body() createProfileDto: CreateProfileDto) {
+    return this.profilesService.create(createProfileDto);
   }
+
   // PUT /profiles/:id
-  // @Put()
+  @Put(':id')
+  update(
+    @Param('id', ParseUUIDPipe) id: UUID,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    return this.profilesService.update(id, updateProfileDto);
+  }
+
   // DELETE /profiles/:id
-  @Delete(':profileId')
-  deleteProfile(@Param('profileId') profileId: string): Profile[] {
-    return this.profilesService.deleteProfile(profileId);
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(ProfilesGuard)
+  remove(@Param('id', ParseUUIDPipe) id: UUID) {
+    return this.profilesService.remove(id);
   }
 }
